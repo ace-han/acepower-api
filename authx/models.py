@@ -1,10 +1,13 @@
 
+from enum import IntEnum, Enum
+
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, \
     UserManager as BaseAuthUserManager
 from django.core import validators
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+
 
 class UserManager(BaseAuthUserManager):
     def create_superuser(self, username, password, email='', **extra_fields):
@@ -19,6 +22,16 @@ class UserManager(BaseAuthUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
         return self._create_user(username, email, password,**extra_fields)
+    
+class UserSource(Enum):
+        WX = 'wx'
+        ALI = 'ali'
+        PHONE = 'phone'
+
+class Gender(IntEnum):
+    Female = 0
+    Male = 1
+    Unknown = 2
 
 class AbstractUser(AbstractBaseUser, PermissionsMixin):
     """
@@ -27,9 +40,8 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     admin-compliant permissions.
 
     """
-    username = models.CharField(_('username'), max_length=30, unique=True,
-        help_text=_('Required. 30 characters or fewer. Letters, digits and '
-                    '@/./+/-/_ only.'),
+    username = models.CharField(_('username'), max_length=32, unique=True,
+        help_text=_('Usually wechat openid/ ali user_id'),
         validators=[
             validators.RegexValidator(r'^[\w.@+-]+$',
                                       _('Enter a valid username. '
@@ -39,8 +51,13 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
         error_messages={
             'unique': _("A user with that username already exists."),
         })
-    nickname = models.CharField(_('nickname'), max_length=30, blank=True)
-    #selfie_path = models.CharField(_('selfie path'), max_length=120, blank=True)
+    # place source here to save one more query when doing token/userinfo update
+    source = models.CharField(_('source'), max_length=8, blank=True, choices=(
+                                                (UserSource.WX, _('WX')),
+                                                (UserSource.ALI, _('ALI')),
+                                                (UserSource.PHONE, _('Phone')),
+                                            ))
+    # selfie_path = models.CharField(_('selfie path'), max_length=120, blank=True)
     email = models.EmailField(_('email address'), blank=True)
     is_staff = models.BooleanField(_('staff status'), default=False,
         help_text=_('Designates whether the user can log into this admin '
@@ -85,5 +102,25 @@ class User(AbstractUser):
         # app_label='auth' # could not make app_label to 'auth'
         # using this table name to make it compatible with django.contrib.auth.User
         db_table = 'auth_user'  
+
+
+from django.contrib.auth import get_user_model
+
+class Profile(models.Model):
+    user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
+    avatar_url = models.CharField(_('avatar_url'), max_length=256, blank=True)
+    city = models.CharField(_('city'), max_length=128, blank=True)
+    country = models.CharField(_('country'), max_length=32, blank=True)
+    gender = models.PositiveSmallIntegerField(_('gender'), 
+                                            default=Gender.Unknown,
+                                            choices=(
+                                                (Gender.Female, _('Female')),
+                                                (Gender.Male, _('Male')),
+                                                (Gender.Unknown, _('Unknown')),
+                                            ))
+    city = models.CharField(_('city'), max_length=128, blank=True)
+    language = models.CharField(_('language'), max_length=4, blank=True, help_text=_('language code'))
+    nickname = models.CharField(_('nickname'), max_length=128, blank=True)
+    province = models.CharField(_('province'), max_length=64, blank=True)
     
-    
+    unionid = models.CharField(_('unionid'), max_length=128, blank=True)
