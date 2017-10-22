@@ -26,14 +26,9 @@ class UserManager(BaseAuthUserManager):
 class UserSource(Enum):
         WX = 'wx'
         ALI = 'ali'
-        PHONE = 'phone'
+        TINAAM = 'tinaam'
 
-class Gender(IntEnum):
-    Female = 0
-    Male = 1
-    Unknown = 2
-
-class AbstractUser(AbstractBaseUser, PermissionsMixin):
+class AbstractUser(AbstractBaseUser, PermissionsMixin):    
     """
     Imitation from django.contrib.authx.models.AbstractUser, without first_name & last_name
     An abstract base class implementing a fully featured User model with
@@ -52,11 +47,8 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
             'unique': _("A user with that username already exists."),
         })
     # place source here to save one more query when doing token/userinfo update
-    source = models.CharField(_('source'), max_length=8, blank=True, choices=(
-                                                (UserSource.WX, _('WX')),
-                                                (UserSource.ALI, _('ALI')),
-                                                (UserSource.PHONE, _('Phone')),
-                                            ))
+    source = models.CharField(_('source'), max_length=8, blank=True, 
+                              choices=[(e, e.name) for e in UserSource])
     # selfie_path = models.CharField(_('selfie path'), max_length=120, blank=True)
     email = models.EmailField(_('email address'), blank=True)
     is_staff = models.BooleanField(_('staff status'), default=False,
@@ -96,31 +88,28 @@ class User(AbstractUser):
     Users within the Django authentication system are represented by this
     model.
 
-    Username, password and email are required. Other fields are optional.
+    Username(uid,openid), password(access_token,session_key) and are required. Other fields are optional.
+    we use username as uid(ali)/openid(wx), password as access_token(ali)/session_key(wx) 
     """
+    unionid = models.CharField(_('unionid'), max_length=128, blank=True) # for wx only
+    
+    def set_access_token(self, value):
+        self.password = value
+    
+    def get_access_token(self):
+        return self.password
+    
+    access_token = property(get_access_token, set_access_token)
+    
+    def set_uid(self, value):
+        self.username = value
+
+    def get_uid(self):
+        return self.username
+    
+    uid = property(get_uid, set_uid)
+    
     class Meta:
         # app_label='auth' # could not make app_label to 'auth'
         # using this table name to make it compatible with django.contrib.auth.User
-        db_table = 'auth_user'  
-
-
-from django.contrib.auth import get_user_model
-
-class Profile(models.Model):
-    user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
-    avatar_url = models.CharField(_('avatar_url'), max_length=256, blank=True)
-    city = models.CharField(_('city'), max_length=128, blank=True)
-    country = models.CharField(_('country'), max_length=32, blank=True)
-    gender = models.PositiveSmallIntegerField(_('gender'), 
-                                            default=Gender.Unknown,
-                                            choices=(
-                                                (Gender.Female, _('Female')),
-                                                (Gender.Male, _('Male')),
-                                                (Gender.Unknown, _('Unknown')),
-                                            ))
-    city = models.CharField(_('city'), max_length=128, blank=True)
-    language = models.CharField(_('language'), max_length=4, blank=True, help_text=_('language code'))
-    nickname = models.CharField(_('nickname'), max_length=128, blank=True)
-    province = models.CharField(_('province'), max_length=64, blank=True)
-    
-    unionid = models.CharField(_('unionid'), max_length=128, blank=True)
+        db_table = 'auth_user'

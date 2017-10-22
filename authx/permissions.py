@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission, IsAdminUser as DrfIsAdminUser
 
-class IsAdminUser(DrfIsAdminUser):
+class IsStaffUser(DrfIsAdminUser):
     def has_object_permission(self, request, view, obj):
         return self.has_permission(request, view)
 

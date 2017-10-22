@@ -9,10 +9,11 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework_jwt.serializers import VerifyJSONWebTokenSerializer
 from rest_framework_jwt.settings import api_settings
 from rest_framework_jwt.views import obtain_jwt_token, \
-    refresh_jwt_token, verify_jwt_token
+    refresh_jwt_token, verify_jwt_token, JSONWebTokenAPIView
 
-from api.v1.auth.serializers import UserSerializer, UserGroupSerializer
-from authx.permissions import IsAdminUser
+from api.v1.auth.serializers import UserSerializer, UserGroupSerializer, \
+    CodeToTokenSerializer
+from authx.permissions import IsStaffUser
 
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
@@ -46,10 +47,20 @@ class UserViewSet(ModelViewSet):
     queryset = get_user_model().objects.all()
     serializer_class = UserSerializer
 #     permission_classes = (IsAuthenticated,
-#                           Or(IsAdminUser), )
+#                           Or(IsStaffUser), )
 
 @api_view(('GET',))
 @permission_classes((IsAuthenticated,))
 def current_user_info(request):
     serializer = UserGroupSerializer(request.user)
     return Response(serializer.data)
+
+class CodeToToken(JSONWebTokenAPIView):
+    """
+    API View that receives a POST with a code and source.
+
+    Returns a JSON Web Token that can be used for authenticated requests.
+    """
+    serializer_class = CodeToTokenSerializer
+
+code_to_token = CodeToToken.as_view()

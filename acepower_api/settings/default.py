@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'common',
     'authx',
+    'account',
     'api',
 ]
 
@@ -309,3 +310,6 @@ JWT_AUTH = {
                                                     # This is how much time after the original token that future tokens can be refreshed from.
     'JWT_AUTH_HEADER_PREFIX': 'Bearer', # that HTTP Header Authorization: Bearer xxx, Bearer part
 }
+
+WX_APP_ID = 'YOUR_WX_APP_ID'
+WX_APP_SECRET = 'YOUR_WX_APP_SECRET'
