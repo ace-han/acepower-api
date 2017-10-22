@@ -21,12 +21,6 @@ jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 jwt_response_payload_handler = api_settings.JWT_RESPONSE_PAYLOAD_HANDLER
 # just a simple wrapper with extra version parameter
 
-def __resolve_user(token):
-    # a little bit overheaded but just login interface for the time being
-    serializer = VerifyJSONWebTokenSerializer(data={'token': token,})
-    serializer.is_valid(raise_exception=True)
-    return serializer.object.get('user')
-
 @api_view(['POST', ])
 def register(request):
     serializer = UserSerializer(data=request.data)

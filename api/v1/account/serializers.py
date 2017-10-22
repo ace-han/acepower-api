@@ -45,7 +45,6 @@ class WxEncryptedProfileSerializer(Serializer):
                 'language': user_info.get('language', ''),
                 'nickname': user_info.get('nickName', ''),
                 'province': user_info.get('province', ''),
-                'unionid': user_info.get('unionId', ''),
             }
         )
         logger.info('user: %s, profile: %s %s', 
