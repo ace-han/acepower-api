@@ -13,5 +13,5 @@
 .settings
 
 manage.dev.py
-vdjapi/settings/prod.py
-vdjapi/settings/dev.py
+acepower_api/settings/prod.py
+acepower_api/settings/dev.py
