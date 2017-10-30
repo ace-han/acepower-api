@@ -1,5 +1,5 @@
 
-from enum import IntEnum, Enum
+from enum import Enum
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, \
     UserManager as BaseAuthUserManager
@@ -24,9 +24,9 @@ class UserManager(BaseAuthUserManager):
         return self._create_user(username, email, password,**extra_fields)
     
 class UserSource(Enum):
-        WX = 'wx'
-        ALI = 'ali'
-        TINAAM = 'tinaam'
+    WX = 'wx'
+    ALI = 'ali'
+    TINAAM = 'tinaam'
 
 class AbstractUser(AbstractBaseUser, PermissionsMixin):    
     """
