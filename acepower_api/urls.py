@@ -17,16 +17,19 @@ from django.conf import settings
 from django.conf.urls import url, include
 from django.conf.urls.i18n import i18n_patterns
 from django.contrib import admin
-from oscar.app import application
 from django.contrib.sitemaps import views
+from oscar.app import application
+from oscarapi.app import application as api
 
 from common.sitemaps import base_sitemaps
-from gateway import urls as gateway_urls
+from oscarx.gateway import urls as gateway_urls
 from .views import index
 
 urlpatterns = [
     url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^api/', include('api.urls', namespace='api')),
+    # url(r'^api/oscar/', include(api.urls)),
+    url(r'^api/v1/oscar/', include(api.urls)),
     # The Django admin is not officially supported; expect breakage.
     # Nonetheless, it's often useful for debugging.
     url(r'^admin/', include(admin.site.urls)),

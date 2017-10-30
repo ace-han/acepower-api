@@ -71,7 +71,8 @@ INSTALLED_APPS = [
     'api',
     
     'oscarx.gateway',     # For allowing oscar dashboard access
-] + oscar.get_core_apps()
+    'oscarapi',
+] + oscar.get_core_apps(['oscarx.partner'])
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -79,8 +80,9 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
-#     'oscarapi.middleware.HeaderSessionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'oscarapi.middleware.HeaderSessionMiddleware',
+#     'api.middleware.CustomApiRootHeaderSessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -95,7 +97,6 @@ MIDDLEWARE = [
     # Ensure a valid basket is added to the request instance for every request
     'oscar.apps.basket.middleware.BasketMiddleware',
     'api.middleware.VersionSwitch',
-
 ]
 
 ROOT_URLCONF = 'acepower_api.urls'
