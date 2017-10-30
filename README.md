@@ -5,6 +5,12 @@
 
 ```sh
 
+# setup timezone in mysql, just change the `mysql` database
+# https://stackoverflow.com/questions/21351251/database-returned-an-invalid-value-in-queryset-dates
+mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -D mysql -u root -p 
+mysql -u root -p -e "flush tables;" mysql 
+
+
 # setup the db
 mysql -u root
 
@@ -46,5 +52,9 @@ open http://0.0.0.0:8090/
 # Keep anything from last 30 days and at least 3 from older changes.
 ./manage.py deleterevisions your_app.YourModel --keep=3 --days=30
 
-
+# for oscar data fixtures trial
+python manage.dev.py oscar_import_catalogue fixtures/*.csv
+python manage.dev.py oscar_import_catalogue_images fixtures/images.tar.gz 
+python manage.dev.py loaddata fixtures/*.json
 ```
+

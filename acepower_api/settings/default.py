@@ -12,11 +12,13 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 
 import os
 from datetime import timedelta
+import oscar
 from os.path import dirname
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.realpath(dirname(dirname(dirname(__file__))))
 
+# Path helper
+location = lambda x: os.path.join(BASE_DIR, x)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
@@ -31,32 +33,69 @@ ALLOWED_HOSTS = [
     '.tinaam.com',
 ]
 
+# This is needed for the hosted version of the sandbox
+ADMINS = (
+    ('Ace Han', 'ace.jl.han@gmail.com'),
+)
+EMAIL_SUBJECT_PREFIX = '[TINAAM] '
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+OSCAR_FROM_EMAIL = 'service@tinaam.com'
+
+MANAGERS = ADMINS
+
 
 # Application definition
+
 
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django.contrib.sites',
     'django.contrib.messages',
+    'django.contrib.flatpages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
+    'django_extensions',
+
+    # Debug toolbar + extensions
+    'debug_toolbar',
+    'widget_tweaks',
     'pytz',
     'rest_framework',
+    
+    'django.contrib.admin',
     'common',
     'authx',
     'account',
     'api',
-]
+    
+    'oscarx.gateway',     # For allowing oscar dashboard access
+] + oscar.get_core_apps()
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    
+#     'oscarapi.middleware.HeaderSessionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
+    
+    # Allow languages to be selected
+    'django.middleware.locale.LocaleMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.http.ConditionalGetMiddleware',
+    
+    # Ensure a valid basket is added to the request instance for every request
+    'oscar.apps.basket.middleware.BasketMiddleware',
     'api.middleware.VersionSwitch',
+
 ]
 
 ROOT_URLCONF = 'acepower_api.urls'
@@ -64,17 +103,34 @@ ROOT_URLCONF = 'acepower_api.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [
+            oscar.OSCAR_MAIN_TEMPLATE_DIR,
+        ],
         'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+            'loaders': [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+                'django.template.loaders.eggs.Loader',
             ],
-        },
-    },
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.request',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.contrib.messages.context_processors.messages',
+
+                # Oscar specific
+                'oscar.apps.search.context_processors.search_form',
+                'oscar.apps.customer.notifications.context_processors.notifications',
+                'oscar.apps.promotions.context_processors.promotions',
+                'oscar.apps.checkout.context_processors.checkout',
+                'oscar.core.context_processors.metadata',
+            ],
+            'debug': DEBUG,
+        }
+    }
 ]
 
 WSGI_APPLICATION = 'acepower_api.wsgi.application'
@@ -138,7 +194,25 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.10/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en'
+# Includes all languages that have >50% coverage in Transifex
+# Taken from Django's default setting for LANGUAGES
+from django.utils.translation import ugettext_lazy as _
+# it won't matter if here is zh-hans, zh-Hans
+#  django.utils.translation.to_locale (=> return a str)
+# will replace hyphen to underscore and Upper the H in hans
+# detail could be referred in django.utils.translation.trans_real.py#to_locale
+LANGUAGES = (
+    ('en', _('English')),
+    ('zh-hans', _('Simplified Chinese')),
+    ('zh-hant', _('Traditional Chinese')),
+)
+
+LOCALE_PATHS=[
+    location('locale'),
+]
+
+SITE_ID = 1
 
 TIME_ZONE = 'UTC'
 
@@ -148,9 +222,10 @@ USE_L10N = True
 
 USE_TZ = True
 
+
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
-MEDIA_ROOT = os.path.normpath(os.path.join(BASE_DIR, 'media'))
+MEDIA_ROOT = os.path.normpath(os.path.join(BASE_DIR, '..', 'acepower-media'))
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
@@ -166,6 +241,16 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'www').replace('\\', '/'),
 )
+
+# Radically simplified static file serving for Python web apps
+# pip install whitenoise
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)
+
 
 # in order to save the history logs
 PROJECT_LOG_DIR = os.path.join(BASE_DIR, '..', 'acepower_api-logs')
@@ -192,6 +277,10 @@ LOGGING = {
         }
     },
     'handlers': {
+        'null': {
+            'level': 'DEBUG',
+            'class': 'logging.NullHandler',
+        },
         'file': {
             'class':'logging.handlers.RotatingFileHandler',
             'maxBytes': 1024*1024*5, # 5 MB
@@ -221,6 +310,12 @@ LOGGING = {
         
     },
     'loggers': {
+        # Django loggers
+        'django': {
+            'handlers': ['null'],
+            'propagate': True,
+            'level': 'INFO',
+        },
         'django.request': {
             # 'handlers': ['file', 'mail_admins'],
             'handlers': ['file', 'console'],
@@ -231,6 +326,32 @@ LOGGING = {
             'handlers': ['db_debug', 'console', ],
             'level': 'ERROR',
             'propagate': True,
+        },
+        # oscar
+        'oscar': {
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'oscar.catalogue.import': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'oscar.alerts': {
+            'handlers': ['null'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Third party
+        'raven': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+        'sorl.thumbnail': {
+            'handlers': ['console'],
+            'propagate': True,
+            'level': 'INFO',
         },
     },
 }
@@ -313,3 +434,144 @@ JWT_AUTH = {
 
 WX_APP_ID = 'YOUR_WX_APP_ID'
 WX_APP_SECRET = 'YOUR_WX_APP_SECRET'
+
+
+# Add Oscar's custom auth backend so users can sign in using their email
+# address.
+AUTHENTICATION_BACKENDS = (
+    #'oscar.apps.customer.auth_backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+LOGIN_REDIRECT_URL = '/'
+APPEND_SLASH = True
+
+# ====================
+# Messages contrib app
+# ====================
+
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.ERROR: 'danger'
+}
+
+# Haystack settings
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
+        'PATH': location('whoosh_index'),
+    },
+}
+# Here's a sample Haystack config if using Solr (which is recommended)
+#HAYSTACK_CONNECTIONS = {
+#    'default': {
+#        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
+#        'URL': u'http://127.0.0.1:8983/solr/oscar_latest/',
+#        'INCLUDE_SPELLING': True
+#    },
+#}
+
+# =============
+# Debug Toolbar
+# =============
+
+# Implicit setup can often lead to problems with circular imports, so we
+# explicitly wire up the toolbar
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+DEBUG_TOOLBAR_PANELS = [
+    'debug_toolbar.panels.versions.VersionsPanel',
+    'debug_toolbar.panels.timer.TimerPanel',
+    'debug_toolbar.panels.settings.SettingsPanel',
+    'debug_toolbar.panels.headers.HeadersPanel',
+    'debug_toolbar.panels.request.RequestPanel',
+    'debug_toolbar.panels.sql.SQLPanel',
+    'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+    'debug_toolbar.panels.templates.TemplatesPanel',
+    'debug_toolbar.panels.cache.CachePanel',
+    'debug_toolbar.panels.signals.SignalsPanel',
+    'debug_toolbar.panels.logging.LoggingPanel',
+    'debug_toolbar.panels.redirects.RedirectsPanel',
+]
+INTERNAL_IPS = ['127.0.0.1', '::1']
+
+
+# ==============
+# Oscar settings
+# ==============
+
+from oscar.defaults import *
+
+# Meta
+# ====
+OSCAR_SHOP_NAME = 'ACEPOWER'
+OSCAR_SHOP_TAGLINE = ''
+
+OSCAR_RECENTLY_VIEWED_PRODUCTS = 20
+OSCAR_ALLOW_ANON_CHECKOUT = True
+
+# This is added to each template context by the core context processor.  It is
+# useful for test/stage/qa sites where you want to show the version of the site
+# in the page title.
+DISPLAY_VERSION = False
+
+
+# Order processing
+# ================
+
+# Sample order/line status settings. This is quite simplistic. It's like you'll
+# want to override the set_status method on the order object to do more
+# sophisticated things.
+OSCAR_INITIAL_ORDER_STATUS = 'Pending'
+OSCAR_INITIAL_LINE_STATUS = 'Pending'
+
+# This dict defines the new order statuses than an order can move to
+OSCAR_ORDER_STATUS_PIPELINE = {
+    'Pending': ('Being processed', 'Cancelled',),
+    'Being processed': ('Complete', 'Cancelled',),
+    'Cancelled': (),
+    'Complete': (),
+}
+
+# This dict defines the line statuses that will be set when an order's status
+# is changed
+OSCAR_ORDER_STATUS_CASCADE = {
+    'Being processed': 'Being processed',
+    'Cancelled': 'Cancelled',
+    'Complete': 'Shipped',
+}
+
+# LESS/CSS
+# ========
+
+# We default to using CSS files, rather than the LESS files that generate them.
+# If you want to develop Oscar's CSS, then set USE_LESS=True to enable the
+# on-the-fly less processor.
+USE_LESS = False
+
+
+# Sentry
+# ======
+
+if os.environ.get('SENTRY_DSN'):
+    RAVEN_CONFIG = {'dsn': os.environ.get('SENTRY_DSN')}
+    LOGGING['handlers']['sentry'] = {
+        'level': 'ERROR',
+        'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+    }
+    LOGGING['root']['handlers'].append('sentry')
+    INSTALLED_APPS.append('raven.contrib.django.raven_compat')
+
+
+# Sorl
+# ====
+
+THUMBNAIL_DEBUG = True
+THUMBNAIL_KEY_PREFIX = 'oscar-sandbox'
+
+# Django 1.6 has switched to JSON serializing for security reasons, but it does not
+# serialize Models. We should resolve this by extending the
+# django/core/serializers/json.Serializer to have the `dumps` function. Also
+# in tests/config.py
+SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
+
+OSCAR_DEFAULT_CURRENCY = 'CNY'

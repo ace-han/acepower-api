@@ -50,6 +50,8 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     source = models.CharField(_('source'), max_length=8, blank=True, 
                               choices=[(e, e.name) for e in UserSource])
     # selfie_path = models.CharField(_('selfie path'), max_length=120, blank=True)
+    # now this email field is necessary for `django-oscar`
+    # TODO but should be unique
     email = models.EmailField(_('email address'), blank=True)
     is_staff = models.BooleanField(_('staff status'), default=False,
         help_text=_('Designates whether the user can log into this admin '
@@ -78,7 +80,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         "Returns the short name for the user."
-        return (self.nickname or self.username).strip()
+        return (getattr(self, 'nickname', self.username)).strip()
     
     def __str__(self):
         return self.username
