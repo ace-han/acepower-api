@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('serial_num', models.CharField(max_length=128, verbose_name='serial number')),
                 ('state', models.CharField(choices=[(oscarx.partner.models.AssetState('idle'), 'IDLE'), (oscarx.partner.models.AssetState('in_use'), 'IN_USE'), (oscarx.partner.models.AssetState('damaged'), 'DAMAGED'), (oscarx.partner.models.AssetState('repairing'), 'REPAIRING'), (oscarx.partner.models.AssetState('obsolete'), 'OBSOLETE'), (oscarx.partner.models.AssetState('expired'), 'EXPIRED')], max_length=8, verbose_name='state')),
                 ('cost', models.FloatField(default=0.0, verbose_name='cost')),
-                ('purchased_at', models.DateTimeField(auto_now=True, null=True, verbose_name='date purchased')),
+                ('purchased_at', models.DateTimeField(null=True, verbose_name='date purchased')),
                 ('expiring_at', models.DateTimeField(null=True, verbose_name='expiring date')),
                 ('maintainer', models.CharField(blank=True, max_length=64, verbose_name='maintainer')),
                 ('maintainer_phone', models.CharField(blank=True, max_length=32, verbose_name='maintainer phone')),
