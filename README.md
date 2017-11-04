@@ -56,5 +56,14 @@ open http://0.0.0.0:8090/
 python manage.dev.py oscar_import_catalogue fixtures/*.csv
 python manage.dev.py oscar_import_catalogue_images fixtures/images.tar.gz 
 python manage.dev.py loaddata fixtures/*.json
-```
 
+# for ssh remote port forwarding
+# https://gist.github.com/ace-han/8450817eecf868f086b59728d7ab62c5
+
+# execute below command in local machine
+
+ssh -fNTg -R 8090:localhost:8090 tinaam@tinaam.com
+
+# this means 
+# tinaam.com:8090 will redirect all dataflow to localhost:8090
+```
