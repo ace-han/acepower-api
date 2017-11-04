@@ -28,8 +28,11 @@ from .views import index
 urlpatterns = [
     url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^api/', include('api.urls', namespace='api')),
-    # url(r'^api/oscar/', include(api.urls)),
-    url(r'^api/v1/oscar/', include(api.urls)),
+
+    # since some `view_name` within its serializer, like 'product-detail', 'product-price'
+    # in oscarapi.serializers.product#XXXSerializer 
+    # it has be done in the url root position and do not attempt to override it again
+    url(r'^api/v1/oscar/', include(api.urls)), 
     # The Django admin is not officially supported; expect breakage.
     # Nonetheless, it's often useful for debugging.
     url(r'^admin/', include(admin.site.urls)),

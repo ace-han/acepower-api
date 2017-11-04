@@ -68,10 +68,13 @@ INSTALLED_APPS = [
     'common',
     'authx',
     'account',
+    
+    'oscarapi', # this one must go first than `api.v1.oscar`
+#     'api.v1.oscar',
     'api',
     
     'oscarx.gateway',     # For allowing oscar dashboard access
-    'oscarapi',
+
 ] + oscar.get_core_apps(['oscarx.partner'])
 
 MIDDLEWARE = [
@@ -81,8 +84,11 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'oscarapi.middleware.HeaderSessionMiddleware',
-#     'api.middleware.CustomApiRootHeaderSessionMiddleware',
+    # 'oscarapi.middleware.HeaderSessionMiddleware',
+    # HeaderSessionMiddleware has hard code 'api-root' within, 
+    # may as well override it for customization
+    'api.middleware.CustomApiRootHeaderSessionMiddleware',
+    
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
