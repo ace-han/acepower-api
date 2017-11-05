@@ -35,6 +35,9 @@ class AbstractPartnerAsset(models.Model):
         verbose_name=_("StockRecord"),
         null=True)
     
+    def __str__(self):
+        return 'partner_id: %s, serial_num: %s' % (self.partner_id, self.serial_num)
+    
     class Meta:
         abstract = True
         app_label = 'partner'
@@ -47,3 +50,34 @@ if not is_model_registered('partner', 'PartnerAsset'):
         pass
 
     __all__.append('PartnerAsset')
+
+class AbstractAssetLocation(models.Model):
+    # code usually for scanning qr_code 
+    code = models.CharField(_('code'), max_length=128)
+    # usually line1 is the room `line2+Serial Number` in this app
+    line1 = models.CharField(_("First line of address"), max_length=255)
+    # usually line2 is a location precisely at hotel in this app
+    line2 = models.CharField(
+        _("Second line of address"), max_length=255, blank=True)
+    
+    asset = models.ForeignKey(
+        'partner.PartnerAsset',
+        on_delete=models.SET_NULL,
+        verbose_name=_("Asset"),
+        null=True)
+
+    def __str__(self):
+        return self.line1
+    
+    class Meta:
+        abstract = True
+        app_label = 'partner'
+        unique_together = ('code', )
+        verbose_name = _("Asset Location")
+
+if not is_model_registered('partner', 'AssetLocation'):
+    class AssetLocation(AbstractAssetLocation):
+        pass
+
+
+    __all__.append('AssetLocation')

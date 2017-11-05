@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 import django.db.models.deletion
-import oscarx.partner.models
 
 
 class Migration(migrations.Migration):
@@ -19,7 +18,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('serial_num', models.CharField(max_length=128, verbose_name='serial number')),
-                ('state', models.CharField(choices=[(oscarx.partner.models.AssetState('idle'), 'IDLE'), (oscarx.partner.models.AssetState('in_use'), 'IN_USE'), (oscarx.partner.models.AssetState('damaged'), 'DAMAGED'), (oscarx.partner.models.AssetState('repairing'), 'REPAIRING'), (oscarx.partner.models.AssetState('obsolete'), 'OBSOLETE'), (oscarx.partner.models.AssetState('expired'), 'EXPIRED')], max_length=8, verbose_name='state')),
+                ('state', models.CharField(choices=[('idle', 'IDLE'), ('in_use', 'IN_USE'), ('damaged', 'DAMAGED'), ('repairing', 'REPAIRING'), ('obsolete', 'OBSOLETE'), ('expired', 'EXPIRED')], max_length=8, verbose_name='state')),
                 ('cost', models.FloatField(default=0.0, verbose_name='cost')),
                 ('purchased_at', models.DateTimeField(null=True, verbose_name='date purchased')),
                 ('expiring_at', models.DateTimeField(null=True, verbose_name='expiring date')),
