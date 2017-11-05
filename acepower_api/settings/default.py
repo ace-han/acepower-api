@@ -84,13 +84,9 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'oscarapi.middleware.HeaderSessionMiddleware',
-    # HeaderSessionMiddleware has hard code 'api-root' within, 
-    # may as well override it for customization
-    'api.middleware.CustomApiRootHeaderSessionMiddleware',
-    
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
@@ -102,6 +98,11 @@ MIDDLEWARE = [
     
     # Ensure a valid basket is added to the request instance for every request
     'oscar.apps.basket.middleware.BasketMiddleware',
+    # this CustomApiRootHeaderSessionMiddleware has come after AuthenticationMiddleware and SessionMiddleware
+    # 'oscarapi.middleware.HeaderSessionMiddleware',
+    # HeaderSessionMiddleware has hard code 'api-root' within, 
+    # may as well override it for customization
+    'api.middleware.CustomApiRootHeaderSessionMiddleware',
     'api.middleware.VersionSwitch',
 ]
 

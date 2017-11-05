@@ -2,7 +2,7 @@ import re
 from django.core.urlresolvers import resolve
 from django.utils import six
 from django.utils.deprecation import MiddlewareMixin
-from oscarapi.middleware import HeaderSessionMiddleware
+from oscarapi.middleware import ApiBasketMiddleWare
 
 
 # plz refer to 
@@ -59,7 +59,7 @@ class CustomApiRootHeaderMetaClass(type):
         return super().__new__(cls, clsname, bases, attr_dict)
  
 @six.add_metaclass(CustomApiRootHeaderMetaClass)
-class CustomApiRootHeaderSessionMiddleware(HeaderSessionMiddleware):
+class CustomApiRootHeaderSessionMiddleware(ApiBasketMiddleWare):
     '''
         refer to https://stackoverflow.com/questions/100003/what-is-a-metaclass-in-python
     '''
