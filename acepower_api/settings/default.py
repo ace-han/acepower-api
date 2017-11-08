@@ -543,6 +543,7 @@ OSCAR_ORDER_STATUS_PIPELINE = {
 # This dict defines the line statuses that will be set when an order's status
 # is changed
 OSCAR_ORDER_STATUS_CASCADE = {
+    'Pending': 'Pending',
     'Being processed': 'Being processed',
     'Cancelled': 'Cancelled',
     'Complete': 'Shipped',
