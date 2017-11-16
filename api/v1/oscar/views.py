@@ -1,10 +1,21 @@
 from oscar.core.loading import get_model
+from oscarapi.basket import operations
+from oscarapi.views.basket import AddProductView
+from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+
+from api.v1.oscar.serializers import AssetLocationReserveSerializer, \
+    AssetLocationBasketSerializer
+from rest_framework.generics import get_object_or_404
 
 
 OrderLineAttribute = get_model('order', 'LineAttribute')
 Order = get_model('order', 'Order')
+Product = get_model('catalogue', 'Product')
+ProductOption = get_model('catalogue', 'Option')
+
 
 @api_view(['GET'])
 def index(request):
@@ -18,8 +29,8 @@ def assetlocation_status(request):
             'occupied_by': user_id
         }
     '''
-    assetlocation_code = request.query_params.get('assetlocation_code')
     option_code_key = 'assetlocation_code' # tide association with data in db!!!
+    assetlocation_code = request.query_params.get(option_code_key)
     status = 'Being processed'
 #     orderline = OrderLineAttribute.objects.filter(option__code=option_code_key,
 #                                                   value=assetlocation_code)
@@ -41,4 +52,70 @@ def assetlocation_status(request):
             'occupied_by': None,
         }
     return Response(result)
+
+class ReserveAssetView(AddProductView):
+    """
+    refer to oscarapi.views.basket#AddProductView
+    """
+    serializer_class = AssetLocationBasketSerializer
+
+    def post(self, request, format=None):
+        '''
+            return a basket info refer to oscar api with a little modification
+            {
+                "id": 1,
+                "owner": user_id,
+                "status": "Open",
+                "lines": [
+                    {...}, 
+                    {...}, ...
+                ],
+                "total_excl_tax": "59.96",
+                "total_excl_tax_excl_discounts": "66.95",
+                "total_incl_tax": "59.96",
+                "total_incl_tax_excl_discounts": "66.95",
+                "total_tax": "0.00",
+                "currency": "CNY",
+                "voucher_discounts": [],
+                "offer_discounts": [
+                    {
+                        "description": null,
+                        "name": "Normal site offer",
+                        "amount": "6.99"
+                    }
+                ],
+                "is_tax_known": true
+            } 
+        '''
+        ser = AssetLocationReserveSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+    #     3. empty(flush) the basket and add a stockrecord basketline to the basket, apply all the offers
+    #     4. return the basket info and display it
+        options = []
+        product = None
+        quantity = 1
+        for k, v in ser.validated_data.items():
+            if k == 'assetlocation_code':
+                product = Product.objects.get(stockrecords__partnerasset__assetlocation__code=v)
+            option = get_object_or_404(ProductOption, code=k)
+            options.append({
+                'option': option,
+                'value': v,
+            })
+        if product is None:
+            raise ValidationError('assetlocation_code: %s does not associate with any product' % (v,))
+    
+        basket = operations.get_basket(request)
+        
+        basket.flush()
+        basket_valid, message = self.validate(basket, product, quantity, options)
+        if not basket_valid:
+                return Response({'reason': message}, status=status.HTTP_406_NOT_ACCEPTABLE)
+        basket.add_product(product, quantity=1, options=options)
+        operations.apply_offers(request, basket)
+        ser = self.serializer_class(basket, context={'request': request})
+        return Response(ser.data)
+
+        
+    
     

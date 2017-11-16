@@ -6,4 +6,5 @@ from . import views
 urlpatterns = (
     url(r'^index', views.index),
     url(r'^assetlocation/status$', views.assetlocation_status),
+    url(r'^assetlocation/reserve$', views.ReserveAssetView.as_view()),
 )
