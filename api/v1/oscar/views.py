@@ -5,9 +5,12 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from oscarapi.views.checkout import CheckoutView as OscarApiCheckoutView
 
 from api.v1.oscar.serializers import AssetLocationReserveSerializer, \
-    AssetLocationBasketSerializer
+    AssetLocationBasketSerializer, AssetCheckoutSerializer, AssetOrderSerializer
 from rest_framework.generics import get_object_or_404
 
 
@@ -53,7 +56,7 @@ def assetlocation_status(request):
         }
     return Response(result)
 
-class ReserveAssetView(AddProductView):
+class BasketPreview(AddProductView):
     """
     refer to oscarapi.views.basket#AddProductView
     """
@@ -95,8 +98,9 @@ class ReserveAssetView(AddProductView):
         product = None
         quantity = 1
         for k, v in ser.validated_data.items():
-            if k == 'assetlocation_code':
-                product = Product.objects.get(stockrecords__partnerasset__assetlocation__code=v)
+            if k == 'sku_code':
+                product = get_object_or_404(Product, stockrecords__partner_sku=v)
+                product.sku_code = v
             option = get_object_or_404(ProductOption, code=k)
             options.append({
                 'option': option,
@@ -106,16 +110,59 @@ class ReserveAssetView(AddProductView):
             raise ValidationError('assetlocation_code: %s does not associate with any product' % (v,))
     
         basket = operations.get_basket(request)
-        
+        basket.status = basket.OPEN # make it open again to be flushed
         basket.flush()
         basket_valid, message = self.validate(basket, product, quantity, options)
         if not basket_valid:
-                return Response({'reason': message}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            return Response({'reason': message}, status=status.HTTP_406_NOT_ACCEPTABLE)
         basket.add_product(product, quantity=1, options=options)
         operations.apply_offers(request, basket)
         ser = self.serializer_class(basket, context={'request': request})
         return Response(ser.data)
 
-        
+class CheckoutView(OscarApiCheckoutView):
+    """
+    customize shipping_address to be 
+    Prepare an order for checkout.
+
+    POST(basket, shipping_address,
+         [total, shipping_method_code, shipping_charge, billing_address]):
+    {
+        "basket": "http://testserver/oscarapi/baskets/1/",
+        "guest_email": "foo@example.com",
+        "total": "100.0",
+        "shipping_charge": {
+            "currency": "EUR",
+            "excl_tax": "10.0",
+            "tax": "0.6"
+        },
+        "shipping_method_code": "no-shipping-required",
+        "shipping_address": {
+            "country": "http://127.0.0.1:8000/oscarapi/countries/NL/",
+            "first_name": "Henk",
+            "last_name": "Van den Heuvel",
+            "line1": "Roemerlaan 44",
+            "line2": "",
+            "line3": "",
+            "line4": "Kroekingen",
+            "notes": "Niet STUK MAKEN OK!!!!",
+            "phone_number": "+31 26 370 4887",
+            "postcode": "7777KK",
+            "state": "Gerendrecht",
+            "title": "Mr"
+        }
+    }
+    returns the order object.
+    """
+    order_serializer_class = AssetOrderSerializer
+    serializer_class = AssetCheckoutSerializer
     
+class PaymentRequestView(APIView):
     
+    def post(self, request, order_id):
+        return Response({'msg': 'stub'})
+
+class PaymentCallbackView(APIView):
+    
+    def post(self, request, order_id):
+        return Response({'msg': 'stub'})

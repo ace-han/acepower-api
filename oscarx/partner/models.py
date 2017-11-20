@@ -25,10 +25,7 @@ class AbstractPartnerAsset(models.Model):
     expiring_at = models.DateTimeField(_('expiring date'), null=True)
     maintainer = models.CharField(_('maintainer'), max_length=64, blank=True)
     maintainer_phone = models.CharField(_('maintainer phone'), max_length=32, blank=True)
-    partner = models.ForeignKey(
-        'partner.Partner',
-        on_delete=models.CASCADE,
-        verbose_name=_("Partner"))
+
     stockrecord = models.ForeignKey(
         'partner.StockRecord',
         on_delete=models.SET_NULL,
@@ -36,12 +33,12 @@ class AbstractPartnerAsset(models.Model):
         null=True)
     
     def __str__(self):
-        return 'partner_id: %s, serial_num: %s' % (self.partner_id, self.serial_num)
+        return 'stockrecord_id: %s, serial_num: %s' % (self.stockrecord_id, self.serial_num)
     
     class Meta:
         abstract = True
         app_label = 'partner'
-        unique_together = ('partner', 'serial_num')
+        unique_together = ('serial_num', )
         verbose_name = _("Partner Asset")
         verbose_name_plural = _("Partner Assets")
 

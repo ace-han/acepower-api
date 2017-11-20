@@ -75,7 +75,11 @@ INSTALLED_APPS = [
     
     'oscarx.gateway',     # For allowing oscar dashboard access
 
-] + oscar.get_core_apps(['oscarx.partner'])
+] + oscar.get_core_apps([
+    'oscarx.partner',
+    'oscarx.payment',
+    'oscarx.shipping',
+])
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',

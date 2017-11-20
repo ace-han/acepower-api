@@ -1,15 +1,16 @@
 from decimal import Decimal
+import warnings
 
+from django.core.urlresolvers import reverse, NoReverseMatch
 from oscar.core.loading import get_model
 from oscarapi.serializers.basket import OfferDiscountSerializer, \
     VoucherDiscountSerializer
 from oscarapi.serializers.fields import TaxIncludedDecimalField
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, NotAcceptable
 from rest_framework.fields import SerializerMethodField, DecimalField, CharField, \
     IntegerField
 from rest_framework.serializers import Serializer
-
-from api.v1.oscar.asset import is_assetlocation_occupied
+from oscarapi.serializers.checkout import CheckoutSerializer, OrderSerializer
 from common.serializers import DynamicFieldsModelSerializer
 
 
@@ -18,6 +19,8 @@ BasketLine = get_model('basket', 'Line')
 BasketLineAttribute = get_model('basket', 'LineAttribute')
 
 AssetLocation = get_model('partner', 'AssetLocation')
+ShippingAddress = get_model('order', 'ShippingAddress')
+BillingAddress = get_model('order', 'BillingAddress')
 
 class AssetLocationSerializer(DynamicFieldsModelSerializer):
     class Meta:
@@ -43,10 +46,9 @@ class AssetLocationBasketLineSerializer(DynamicFieldsModelSerializer):
         fields = '__all__'
     
     def get_asset_location(self, obj):
-        a_qs = obj.attributes.filter(option__code='assetlocation_code')
-        if a_qs.exists():
-            l_qs = AssetLocation.objects.filter(code=a_qs.values_list('value', flat=True)[0])
-            l_ser = AssetLocationSerializer(l_qs.get())
+        qs  = AssetLocation.objects.filter(code=obj.stockrecord.partner_sku)
+        if qs.exists():
+            l_ser = AssetLocationSerializer(qs.get())
         else:
             l_ser = AssetLocationSerializer(AssetLocation.objects.none())
         return l_ser.data
@@ -79,14 +81,58 @@ class AssetLocationBasketSerializer(DynamicFieldsModelSerializer):
         fields = '__all__'
         
 class AssetLocationReserveSerializer(Serializer):
-    assetlocation_code = CharField(max_length=128)
+    sku_code = CharField(max_length=128)
     unit_duration_min = IntegerField(min_value=0)
     
-    def validate_assetlocation_code(self, value):
+    def validate_sku_code(self, value):
         ok = AssetLocation.objects.filter(code=value).exists()
         if not ok:
             raise ValidationError('AssetLocation not found')
-        occupied = is_assetlocation_occupied(value)
-        if occupied:
-            raise ValidationError('AssetLocation is occupied')
         return value
+
+
+class AssetOrderSerializer(OrderSerializer):
+    def get_payment_url(self, obj):
+        reverse_view_name = 'api:v1:oscar:api-payment'
+        try:
+            return reverse(reverse_view_name, args=(obj.pk,))
+        except NoReverseMatch:
+            msg = "You need to implement a view named '%s' " \
+                "which redirects to the payment provider and sets up the " \
+                "callbacks." % (reverse_view_name, )
+            warnings.warn(msg)
+            return msg
+
+class AssetCheckoutSerializer(CheckoutSerializer):
+    
+    def create(self, validated_data):
+        try:
+            basket = validated_data.get('basket')
+            order_number = self.generate_order_number(basket)
+            request = self.context['request']
+            # make this shipping_address optional
+            if 'shipping_address' in validated_data:
+                shipping_address = ShippingAddress(
+                **validated_data['shipping_address'])
+            else:
+                shipping_address = None
+
+            if 'billing_address' in validated_data:
+                billing_address = BillingAddress(
+                    **validated_data['billing_address'])
+            else:
+                billing_address = None
+
+            return self.place_order(
+                order_number=order_number,
+                user=request.user,
+                basket=basket,
+                shipping_address=shipping_address,
+                shipping_method=validated_data.get('shipping_method'),
+                shipping_charge=validated_data.get('shipping_charge'),
+                billing_address=billing_address,
+                order_total=validated_data.get('total'),
+                guest_email=validated_data.get('guest_email') or ''
+            )
+        except ValueError as e:
+            raise NotAcceptable(str(e))
