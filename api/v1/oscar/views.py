@@ -1,24 +1,26 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from oscar.core.loading import get_model
 from oscarapi.basket import operations
 from oscarapi.views.basket import AddProductView
+from oscarapi.views.checkout import CheckoutView as OscarApiCheckoutView
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from oscarapi.views.checkout import CheckoutView as OscarApiCheckoutView
-
 from api.v1.oscar.serializers import AssetLocationReserveSerializer, \
     AssetLocationBasketSerializer, AssetCheckoutSerializer, AssetOrderSerializer
-from rest_framework.generics import get_object_or_404
 
 
+Basket = get_model('basket', 'Basket')
 OrderLineAttribute = get_model('order', 'LineAttribute')
 Order = get_model('order', 'Order')
 Product = get_model('catalogue', 'Product')
 ProductOption = get_model('catalogue', 'Option')
-
 
 @api_view(['GET'])
 def index(request):
@@ -32,22 +34,22 @@ def assetlocation_status(request):
             'occupied_by': user_id
         }
     '''
-    option_code_key = 'assetlocation_code' # tide association with data in db!!!
-    assetlocation_code = request.query_params.get(option_code_key)
-    status = 'Being processed'
+    option_code_key = 'sku_code' # tide association with data in db!!!
+    sku_code = request.query_params.get(option_code_key)
+    statuses = ('Pending', 'Being processed')
 #     orderline = OrderLineAttribute.objects.filter(option__code=option_code_key,
 #                                                   value=assetlocation_code)
-    qs = Order.objects.filter(lines__attributes__option__code=option_code_key, 
-                         lines__attributes__value=assetlocation_code,
-                         user=request.user,
-                         status=status).values('id', 'user_id')
+#     now = timezone.now()
+#     qs = Order.objects.filter(date_placed__gt=now-timedelta(minutes=5), 
+    qs = Order.objects.filter(status__in=statuses,
+                            lines__attributes__option__code=option_code_key, 
+                            lines__attributes__value=sku_code)
     occupied = qs.exists()
     if occupied:
         item = qs[0]
         result = {
             'occupied': True,
-            'occupied_by': item['user_id'],
-            'order_id': item['id']# not pledged to return...
+            'order': AssetOrderSerializer(item, context={'request': request}).data,
         }
     else:
         result = {
@@ -97,8 +99,10 @@ class BasketPreview(AddProductView):
         options = []
         product = None
         quantity = 1
+        sku_code_key = 'sku_code'
+        
         for k, v in ser.validated_data.items():
-            if k == 'sku_code':
+            if k == sku_code_key:
                 product = get_object_or_404(Product, stockrecords__partner_sku=v)
                 product.sku_code = v
             option = get_object_or_404(ProductOption, code=k)
@@ -106,15 +110,12 @@ class BasketPreview(AddProductView):
                 'option': option,
                 'value': v,
             })
-        if product is None:
-            raise ValidationError('assetlocation_code: %s does not associate with any product' % (v,))
     
         basket = operations.get_basket(request)
-        basket.status = basket.OPEN # make it open again to be flushed
         basket.flush()
         basket_valid, message = self.validate(basket, product, quantity, options)
         if not basket_valid:
-            return Response({'reason': message}, status=status.HTTP_406_NOT_ACCEPTABLE)
+            return Response({'detail': message}, status=status.HTTP_406_NOT_ACCEPTABLE)
         basket.add_product(product, quantity=1, options=options)
         operations.apply_offers(request, basket)
         ser = self.serializer_class(basket, context={'request': request})
@@ -156,7 +157,16 @@ class CheckoutView(OscarApiCheckoutView):
     """
     order_serializer_class = AssetOrderSerializer
     serializer_class = AssetCheckoutSerializer
+
+class AssetBasketView(APIView):
+    serializer_class = AssetLocationBasketSerializer
     
+    def get(self, request, basket_id, format=None):
+        basket = get_object_or_404(Basket, id=basket_id)
+        operations.assign_basket_strategy(basket, request)
+        ser = self.serializer_class(basket, context={'request': request})
+        return Response(ser.data)
+
 class PaymentRequestView(APIView):
     
     def post(self, request, order_id):
