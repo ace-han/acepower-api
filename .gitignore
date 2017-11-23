@@ -16,3 +16,6 @@ manage.dev.py
 acepower_api/settings/prod.py
 acepower_api/settings/dev.py
 whoosh_index
+
+/celeryapp
+celerybeat-schedule
