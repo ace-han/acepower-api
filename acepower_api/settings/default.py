@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/1.10/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
+from __future__ import absolute_import
 
 import os
 from datetime import timedelta
@@ -79,6 +80,7 @@ INSTALLED_APPS = [
     'oscarx.partner',
     'oscarx.payment',
     'oscarx.shipping',
+    'oscarx.order',
 ])
 
 MIDDLEWARE = [
@@ -173,13 +175,34 @@ except ImportError:
     pass 
 
 
+REDIS_PORT = 6379
+# please DO redefine `BROKER_URL` in $env.py if either below 2 properties change 
+REDIS_HOST = '127.0.0.1'
+REDIS_PASSWORD = 'ace'
+
+REDIS_CONFIG = {
+    'password': REDIS_PASSWORD, 
+    'port': REDIS_PORT,
+    'host': REDIS_HOST, 
+}
+# celery + redis
+# Keep consistent with /etc/redis.conf 'requirepass' config
+# please DO redefine `BROKER_URL` in ${env}.py if above properties change
+REDIS_CONN_TEMPLATE = 'redis://:%(password)s@%(host)s:%(port)s/%(db)s'
+
+CACHE_REDIS_CONFIG = REDIS_CONFIG.copy()
+CACHE_REDIS_CONFIG['db'] = 0
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 60*1,
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000,
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_CONN_TEMPLATE % CACHE_REDIS_CONFIG,
+        'TIMEOUT': 600,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 1000,
+            }
         }
     }
 }
@@ -354,6 +377,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'oscarx': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        }, 
         # Third party
         'raven': {
             'level': 'DEBUG',
@@ -533,15 +561,16 @@ DISPLAY_VERSION = False
 # Sample order/line status settings. This is quite simplistic. It's like you'll
 # want to override the set_status method on the order object to do more
 # sophisticated things.
-OSCAR_INITIAL_ORDER_STATUS = 'Pending'
+OSCARAPI_INITIAL_ORDER_STATUS = OSCAR_INITIAL_ORDER_STATUS = 'Pending'
 OSCAR_INITIAL_LINE_STATUS = 'Pending'
 
 # This dict defines the new order statuses than an order can move to
 OSCAR_ORDER_STATUS_PIPELINE = {
-    'Pending': ('Being processed', 'Cancelled',),
-    'Being processed': ('Complete', 'Cancelled',),
+    'Pending': ('Being processed', 'Cancelled', 'Timeout',),
+    'Being processed': ('Complete', 'Cancelled', 'Timeout',),
     'Cancelled': (),
     'Complete': (),
+    'Timeout': (),
 }
 
 # This dict defines the line statuses that will be set when an order's status
@@ -551,7 +580,10 @@ OSCAR_ORDER_STATUS_CASCADE = {
     'Being processed': 'Being processed',
     'Cancelled': 'Cancelled',
     'Complete': 'Shipped',
+    'Timeout': 'Timeout',
 }
+
+OSCAR_ORDER_TIMEOUT_SEC = 300
 
 # LESS/CSS
 # ========
@@ -588,3 +620,6 @@ THUMBNAIL_KEY_PREFIX = 'oscar-sandbox'
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
 OSCAR_DEFAULT_CURRENCY = 'CNY'
+
+
+
