@@ -2,7 +2,7 @@
 from oscar.apps.shipping import methods as shipping_methods
 from oscar.core.loading import get_class
 
-CommenceDown = get_class('shipping.methods', 'CommenceDown')
+CountDown = get_class('shipping.methods', 'CountDown')
 OcarRepository = get_class('shipping.repository', 'Repository')
 class Repository(OcarRepository):
     """
@@ -13,4 +13,4 @@ class Repository(OcarRepository):
     # We default to just free shipping. Customise this class and override this
     # property to add your own shipping methods. This should be a list of
     # instantiated shipping methods.
-    methods = (shipping_methods.Free(), CommenceDown())
+    methods = (shipping_methods.Free(), CountDown())

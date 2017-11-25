@@ -4,7 +4,7 @@ from oscar.core.loading import get_class
 
 from .methods import wx
 from rest_framework.exceptions import ValidationError
-CommenceDown = get_class('shipping.methods', 'CommenceDown')
+CountDown = get_class('shipping.methods', 'CountDown')
 
 class Fascade(object):
     '''

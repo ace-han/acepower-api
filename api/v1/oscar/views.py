@@ -1,19 +1,17 @@
-from datetime import timedelta
 
-from django.utils import timezone
 from oscar.core.loading import get_model
 from oscarapi.basket import operations
 from oscarapi.views.basket import AddProductView
 from oscarapi.views.checkout import CheckoutView as OscarApiCheckoutView
 from rest_framework import status
 from rest_framework.decorators import api_view
-from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.v1.oscar.serializers import AssetLocationReserveSerializer, \
-    AssetLocationBasketSerializer, AssetCheckoutSerializer, AssetOrderSerializer
+    AssetLocationBasketSerializer, AssetCheckoutSerializer, \
+    AssetOrderSerializer, CountDownOrderSerializer
 
 
 Basket = get_model('basket', 'Basket')
@@ -49,7 +47,7 @@ def assetlocation_status(request):
         item = qs[0]
         result = {
             'occupied': True,
-            'order': AssetOrderSerializer(item, context={'request': request}).data,
+            'order': CountDownOrderSerializer(item, context={'request': request}).data,
         }
     else:
         result = {
@@ -155,17 +153,19 @@ class CheckoutView(OscarApiCheckoutView):
     }
     returns the order object.
     """
-    order_serializer_class = AssetOrderSerializer
+    order_serializer_class = CountDownOrderSerializer
     serializer_class = AssetCheckoutSerializer
 
-class AssetBasketView(APIView):
-    serializer_class = AssetLocationBasketSerializer
+class AssetOrderView(APIView):
+    serializer_class = AssetOrderSerializer
     
-    def get(self, request, basket_id, format=None):
-        basket = get_object_or_404(Basket, id=basket_id)
-        operations.assign_basket_strategy(basket, request)
-        ser = self.serializer_class(basket, context={'request': request})
+    def get(self, request, order_id, format=None):
+        order = get_object_or_404(Order, id=order_id)
+        ser = self.serializer_class(order, context={'request': request})
         return Response(ser.data)
+
+class CountDownOrderView(AssetOrderView):
+    serializer_class = CountDownOrderSerializer
 
 class PaymentRequestView(APIView):
     
