@@ -9,8 +9,6 @@ https://docs.djangoproject.com/en/1.10/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.10/ref/settings/
 """
-from __future__ import absolute_import
-
 import os
 from datetime import timedelta
 import oscar
