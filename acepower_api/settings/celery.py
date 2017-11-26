@@ -30,5 +30,9 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute='*'),
         #'args': (1, 2)
     },
+    'turn_off_running_devices': {
+        'task': 'oscarx.order.tasks.turn_off_devices',
+        'schedule': crontab(minute='*'),
+        #'args': (1, 2)
+    },
 }
-
