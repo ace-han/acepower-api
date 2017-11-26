@@ -15,6 +15,7 @@ from rest_framework.fields import SerializerMethodField, DecimalField, CharField
 from rest_framework.serializers import Serializer
 
 from common.serializers import DynamicFieldsModelSerializer
+from oscarx.payment.fascade import Fascade
 
 
 Basket = get_model('basket', 'Basket')
@@ -179,3 +180,19 @@ class AssetCheckoutSerializer(CheckoutSerializer):
             )
         except ValueError as e:
             raise NotAcceptable(str(e))
+
+class PaymentSerializer(Serializer):
+    order = IntegerField()
+    source_type = CharField()
+    
+    def validate_order(self, value):
+        o = Order.objects.get(id=value)
+        if o.status != 'pending':
+            raise ValidationError('Order status: %s invalid' % o.status)
+        return o
+    
+    def validate_source_type(self, value):
+        if value not in Fascade.source_type_method_class_dict:
+            raise ValidationError('Payment type: %s not suppported' % value)
+        
+        return value

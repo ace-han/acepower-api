@@ -11,5 +11,5 @@ urlpatterns = (
     url(r'^asset/countdown/order/(?P<order_id>\d+)$', views.CountDownOrderView.as_view()),
     url(r'^asset/order/(?P<order_id>\d+)$', views.AssetOrderView.as_view()),
     url(r'^payment/(?P<order_id>\d+)$', views.PaymentRequestView.as_view(), name='api-payment'),
-    url(r'^payment/callback$', views.PaymentCallbackView.as_view()),
+    url(r'^payment/callback$', views.PaymentCallbackView.as_view(), name='api-payment-callback'),
 )
