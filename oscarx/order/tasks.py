@@ -22,9 +22,9 @@ def mark_as_timeout(self):
     now = timezone.now()
     delta = timedelta(seconds=settings.OSCAR_ORDER_TIMEOUT_SEC)
     fine_time = now - delta
-    o_qs = Order.objects.filter(status='Pending', date_placed__lt=fine_time)
+    o_qs = Order.objects.filter(status='pending', date_placed__lt=fine_time)
     if not o_qs.exists():
-        logger.info('No `Pending` orders need mark as `Timeout`')
+        logger.info('No `pending` orders need mark as `timeout`')
         return
     
     o_counter = 0
@@ -34,6 +34,6 @@ def mark_as_timeout(self):
             if line.stockrecord:
                 line.stockrecord.cancel_allocation(line.quantity)
                 l_counter += 1
-        o.set_status('Timeout')
+        o.set_status('timeout')
         o_counter += 1
-    logger.info('Pending order size: %s, order line size: %s', o_counter, l_counter)
+    logger.info('pending order size: %s, order line size: %s', o_counter, l_counter)

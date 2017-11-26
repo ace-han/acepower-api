@@ -564,21 +564,21 @@ OSCAR_INITIAL_LINE_STATUS = 'Pending'
 
 # This dict defines the new order statuses than an order can move to
 OSCAR_ORDER_STATUS_PIPELINE = {
-    'Pending': ('Being processed', 'Cancelled', 'Timeout',),
-    'Being processed': ('Complete', 'Cancelled', 'Timeout',),
-    'Cancelled': (),
-    'Complete': (),
-    'Timeout': (),
+    'pending': ('being_processed', 'cancelled', 'timeout',),
+    'being_processed': ('complete', 'cancelled', 'timeout',),
+    'cancelled': (),
+    'complete': (),
+    'timeout': (),
 }
 
 # This dict defines the line statuses that will be set when an order's status
 # is changed
 OSCAR_ORDER_STATUS_CASCADE = {
-    'Pending': 'Pending',
-    'Being processed': 'Being processed',
-    'Cancelled': 'Cancelled',
-    'Complete': 'Shipped',
-    'Timeout': 'Timeout',
+    'pending': 'pending',
+    'being_processed': 'being_processed',
+    'cancelled': 'cancelled',
+    'complete': 'shipped',
+    'timeout': 'timeout',
 }
 
 OSCAR_ORDER_TIMEOUT_SEC = 300
