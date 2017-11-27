@@ -28,6 +28,7 @@ BillingAddress = get_model('order', 'BillingAddress')
 Order = get_model('order', 'Order')
 OrderLine = get_model('order', 'Line')
 OrderLineAttribute = get_model('order', 'LineAttribute')
+ShippingEvent = get_model('order', 'ShippingEvent')
 
 class AssetLocationSerializer(DynamicFieldsModelSerializer):
     class Meta:
@@ -188,7 +189,7 @@ class PaymentSerializer(Serializer):
     def validate_order(self, value):
         o = Order.objects.get(id=value)
         if o.status != 'pending':
-            raise ValidationError('Order status: %s invalid' % o.status)
+            raise ValidationError('Invalid order status: %s' % o.status)
         return o
     
     def validate_source_type(self, value):
@@ -196,3 +197,39 @@ class PaymentSerializer(Serializer):
             raise ValidationError('Payment type: %s not suppported' % value)
         
         return value
+
+class CountDownShippingInfoSerializer(Serializer):
+    order = IntegerField()
+    
+    def validate_order(self, value):
+        o = Order.objects.get(id=value)
+        return o
+    
+    def to_representation(self, validated_data):
+        '''
+        return {
+            'shipped_time': ''/None,
+            'unit_duration_min': int,
+            'delivered': True/False, # since update from wx is at a great cost
+        }
+        '''
+        order = validated_data['order']
+        first_line = order.lines.all()[0]
+        attr_qs = first_line.attributes.filter(option__code='unit_duration_min')
+        try:
+            unit_duration_min = int(attr_qs.values_list('value', flat=True)[0])
+        except:
+            unit_duration_min = 1
+        
+        e_qs = ShippingEvent.objects.filter(order=order, event_type__code='shipped')
+        shipped_time = e_qs.values_list('date_created', flat=True)[0] if e_qs.exists() else None
+        
+        e_qs = ShippingEvent.objects.filter(order=order, event_type__code='delivered')
+        result = {
+            'shipped_time': shipped_time,
+            'unit_duration_min': unit_duration_min,
+            'delivered': e_qs.exists(),
+        }
+        return result
+        
+        

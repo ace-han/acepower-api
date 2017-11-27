@@ -11,7 +11,8 @@ from rest_framework.views import APIView
 
 from api.v1.oscar.serializers import AssetLocationReserveSerializer, \
     AssetLocationBasketSerializer, AssetCheckoutSerializer, \
-    AssetOrderSerializer, CountDownOrderSerializer, PaymentSerializer
+    AssetOrderSerializer, CountDownOrderSerializer, PaymentSerializer, \
+    CountDownShippingInfoSerializer
 from oscarx.payment.fascade import Fascade
 from oscar.apps.checkout.signals import pre_payment, post_payment
 
@@ -189,3 +190,11 @@ class PaymentCallbackView(APIView):
     def post(self, request):
         post_payment.send_robust(sender=self, view=self)
         return Response({'msg': 'stub'})
+
+class CountDownShippingInfoView(APIView):
+    serializer_class = CountDownShippingInfoSerializer
+    
+    def get(self, request, order_id):
+        ser = self.serializer_class(data={'order':order_id}, context={'request': request})
+        ser.is_valid(raise_exception=True)
+        return Response(ser.data)
