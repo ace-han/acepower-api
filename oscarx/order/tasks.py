@@ -52,6 +52,7 @@ def turn_off_device(self, order_id):
     sku_code = first_line.attributes.filter(option__code='sku_code').values_list('value', flat=True)
     logger.info('turning off order: %s, sku_code: %s', order.id, sku_code)
     order.set_status('complete')
+    first_line.stockrecord.cancel_allocation(first_line.quantity)
     shipping_event_type = ShippingEventType.objects.get(code='delivered')
     shipping_event = ShippingEvent.objects.create(order=order, event_type=shipping_event_type)
     shipping_event.save()
