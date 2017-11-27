@@ -84,6 +84,7 @@ def turn_off_devices(self):
             unit_duration_min = int(ola['unit_duration_min'])
         except:
             unit_duration_min = 1
+        unit_duration_min = 3 # TODO for test only now
         if event_createtime+timedelta(minutes=unit_duration_min) < now:
             completed_order_ids.append(order_id)
     if not completed_order_ids:
