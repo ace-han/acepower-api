@@ -559,8 +559,8 @@ DISPLAY_VERSION = False
 # Sample order/line status settings. This is quite simplistic. It's like you'll
 # want to override the set_status method on the order object to do more
 # sophisticated things.
-OSCARAPI_INITIAL_ORDER_STATUS = OSCAR_INITIAL_ORDER_STATUS = 'Pending'
-OSCAR_INITIAL_LINE_STATUS = 'Pending'
+OSCARAPI_INITIAL_ORDER_STATUS = OSCAR_INITIAL_ORDER_STATUS = 'pending'
+OSCAR_INITIAL_LINE_STATUS = 'pending'
 
 # This dict defines the new order statuses than an order can move to
 OSCAR_ORDER_STATUS_PIPELINE = {
