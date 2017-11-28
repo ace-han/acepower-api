@@ -108,7 +108,7 @@ class OrderLineAttributeSerializer(DynamicFieldsModelSerializer):
         fields = '__all__'
 
 class AssetOrderLineSerializer(AssetLocationMixin, DynamicFieldsModelSerializer):
-    line_attributes = OrderLineAttributeSerializer(many=True,
+    attributes = OrderLineAttributeSerializer(many=True,
         required=False,
         read_only=True)
     
