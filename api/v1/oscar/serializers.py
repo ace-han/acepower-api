@@ -232,4 +232,21 @@ class CountDownShippingInfoSerializer(Serializer):
         }
         return result
         
+class HistoryOrderSerializer(DynamicFieldsModelSerializer):
+    asset_location = SerializerMethodField()
+    
+    class Meta:
+        model = Order
+        fields = ('id', 'number', 'total_incl_tax', 'asset_location', 'status', 'date_placed')
         
+    def get_asset_location(self, obj):
+        first_line = obj.lines.all()[0]
+        qs = first_line.attributes.filter(option__code='sku_code')
+        if not qs.exists():
+            return AssetLocationSerializer(AssetLocation.objects.none()).data
+        qs  = AssetLocation.objects.filter(code=qs.values_list('value', flat=True)[0])
+        if qs.exists():
+            l_ser = AssetLocationSerializer(qs.get())
+        else:
+            l_ser = AssetLocationSerializer(AssetLocation.objects.none())
+        return l_ser.data

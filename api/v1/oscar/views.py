@@ -1,20 +1,20 @@
 
+from oscar.apps.checkout.signals import pre_payment, post_payment
 from oscar.core.loading import get_model
 from oscarapi.basket import operations
 from oscarapi.views.basket import AddProductView
 from oscarapi.views.checkout import CheckoutView as OscarApiCheckoutView
 from rest_framework import status
 from rest_framework.decorators import api_view
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.v1.oscar.serializers import AssetLocationReserveSerializer, \
     AssetLocationBasketSerializer, AssetCheckoutSerializer, \
     AssetOrderSerializer, CountDownOrderSerializer, PaymentSerializer, \
-    CountDownShippingInfoSerializer
+    CountDownShippingInfoSerializer, HistoryOrderSerializer
 from oscarx.payment.fascade import Fascade
-from oscar.apps.checkout.signals import pre_payment, post_payment
 
 
 Basket = get_model('basket', 'Basket')
@@ -198,3 +198,17 @@ class CountDownShippingInfoView(APIView):
         ser = self.serializer_class(data={'order':order_id}, context={'request': request})
         ser.is_valid(raise_exception=True)
         return Response(ser.data)
+
+class HistoryOrderListView(ListAPIView):
+    serializer_class = HistoryOrderSerializer
+    
+    def get_queryset(self):
+        qs = Order.objects.exclude(status__in=('timeout', 'cancelled', )) 
+        qs = qs.filter(user=self.request.user)
+        status = self.request.query_params.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        q = self.request.query_params.get('q')
+        if q:
+            qs = qs.filter(basket__lines__stockrecord__partnerasset__assetlocation__line2__icontains=q)
+        return qs
