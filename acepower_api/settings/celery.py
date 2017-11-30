@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from .default import *
+from .prod import *
 DEBUG = False
 #: Only add pickle to this list if your broker is secured
 #: from unwanted access (see userguide/security.html)
